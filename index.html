@@ -100,7 +100,26 @@ footer{border-top:1px solid #ffffff12;padding:22px 0 35px;text-align:center;colo
 <script>
 const titles={home:'مرحباً بك في ADLANE AI',chat:'المحادثة الذكية',write:'مساعد الكتابة',translate:'الترجمة',images:'استوديو الصور',research:'البحث والتعلّم'};
 function showTab(id){document.querySelectorAll('.tool-panel').forEach(p=>p.classList.toggle('active',p.id===id));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));document.getElementById('panelTitle').textContent=titles[id]||titles.home;document.querySelector('.maincard').scrollIntoView({behavior:'smooth',block:'start'})}
-function sendMessage(){const input=document.getElementById('chatInput'),v=input.value.trim();if(!v)return;const box=document.getElementById('messages');const u=document.createElement('div');u.className='msg user';u.textContent=v;box.appendChild(u);const a=document.createElement('div');a.className='msg ai';a.textContent='وصل سؤالك إلى واجهة ADLANE AI التجريبية. لحد الآن، هذه النسخة غير مربوطة بنموذج ذكاء اصطناعي، لذلك لا يمكنها توليد إجابة حقيقية. الخطوة القادمة هي ربط واجهة آمنة بخدمة AI.';box.appendChild(a);input.value='';box.scrollTop=box.scrollHeight}
+async function sendMessage(){
+  const input=document.getElementById('chatInput'),v=input.value.trim();
+  if(!v)return;
+  const box=document.getElementById('messages');
+  const u=document.createElement('div');u.className='msg user';u.textContent=v;box.appendChild(u);
+  input.value='';
+  const a=document.createElement('div');a.className='msg ai';a.textContent='لحظة، نفكّر في الإجابة...';box.appendChild(a);box.scrollTop=box.scrollHeight;
+  const sendButton=document.querySelector('.send');if(sendButton)sendButton.disabled=true;
+  try{
+    const response=await fetch('/.netlify/functions/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:v})});
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'تعذّر الاتصال بالمساعد.');
+    a.textContent=data.reply||'لم تصل إجابة. حاول مرة أخرى.';
+  }catch(err){
+    a.textContent='ما قدرناش نتصلو بالمساعد الآن. تأكد أن ملفات Netlify Function مرفوعة وأن GEMINI_API_KEY مضبوط في إعدادات Netlify، ثم أعد النشر.';
+  }finally{
+    if(sendButton)sendButton.disabled=false;
+    box.scrollTop=box.scrollHeight;
+  }
+}
 function demoWrite(){const t=document.getElementById('writeType').value,v=document.getElementById('writeInput').value.trim();document.getElementById('writeResult').textContent=v?`[مسودة تجريبية — ${t}]\n\nالموضوع: ${v}\n\nيرجى ربط ADLANE AI بنموذج لغوي حتى يتمكن من صياغة نص نهائي مخصص لهذا الطلب.`:'اكتب الفكرة أولاً حتى نجهّز قالب المسودة.'}
 function demoTranslate(){const v=document.getElementById('translateInput').value.trim();document.getElementById('translateResult').textContent=v?`النص جاهز للترجمة من ${document.getElementById('fromLang').value} إلى ${document.getElementById('toLang').value}.\n\nلإنتاج ترجمة فعلية، يلزم ربط خدمة ترجمة أو نموذج ذكاء اصطناعي.`:'أدخل نصاً أولاً.'}
 function makePrompt(){const v=document.getElementById('imagePrompt').value.trim();document.getElementById('imageResult').textContent=v?`وصف محسّن مقترح:\nصمّم صورة عالية الجودة بناءً على الفكرة التالية: ${v}. أسلوب احترافي، تكوين واضح، تفاصيل متوازنة، جودة عالية، بدون نصوص مشوّهة. حافظ على هوية ADLANE AI إذا كان الشعار مطلوباً.\n\nهذا وصف نصّي فقط؛ لم يتم إنشاء صورة فعلية.`:'اكتب وصف الصورة أولاً.'}
